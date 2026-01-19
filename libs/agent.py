@@ -2,9 +2,13 @@ from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
 
 
+def initialize_model():
+    return ChatOpenAI(model="gpt-4.1-nano", temperature=0, timeout=10, max_tokens=1000)
+
+
 def initialize_agent():
     # Configure model
-    model = ChatOpenAI(model="gpt-4.1-nano", temperature=0, timeout=10, max_tokens=1000)
+    model = initialize_model()
 
     # Create agent
     agent = create_agent(

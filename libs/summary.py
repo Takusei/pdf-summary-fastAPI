@@ -1,4 +1,5 @@
 import asyncio
+import time
 
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_core.output_parsers import StrOutputParser
@@ -74,6 +75,7 @@ def summarize_single_pdf(
     method: str = "stuff",
 ) -> str:
     """Summarizes the text content of a PDF file using a map-reduce strategy."""
+    start_time = time.time()
     print(f"Summarizing file: {file_path}")
 
     if not file_path.lower().endswith(".pdf"):
@@ -103,15 +105,21 @@ def summarize_single_pdf(
         print("Using 'stuff' method for summarization.")
         summary = get_summary_with_stuff(docs, llm)
 
-    return summary
+    duration = time.time() - start_time
+
+    return summary, duration
 
 
-async def summarize_single_pdf_async(file_path: str, semaphore: asyncio.Semaphore):
+async def summarize_single_pdf_async(
+    file_path: str, semaphore: asyncio.Semaphore, llm: ChatOpenAI
+) -> tuple[str, float]:
     """
     Asynchronous wrapper for the summarize_single_pdf function, controlled by a semaphore.
     """
     async with semaphore:
         loop = asyncio.get_running_loop()
         # Run the synchronous summarize_single_pdf function in a separate thread
-        summary = await loop.run_in_executor(None, summarize_single_pdf, file_path)
-        return summary
+        summary, duration = await loop.run_in_executor(
+            None, summarize_single_pdf, file_path, llm
+        )
+        return summary, duration
