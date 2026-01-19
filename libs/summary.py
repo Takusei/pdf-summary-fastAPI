@@ -69,6 +69,7 @@ def summarize_single_pdf(
     llm: ChatOpenAI = ChatOpenAI(
         model="gpt-4.1-nano", temperature=0, timeout=10, max_tokens=1000
     ),
+    method: str = "stuff",
 ) -> str:
     """Summarizes the text content of a PDF file using a map-reduce strategy."""
     print(f"Summarizing file: {file_path}")
@@ -85,12 +86,19 @@ def summarize_single_pdf(
     if not docs:
         return "Error: The PDF file is empty or could not be read."
 
-    # Decide whether to use map-reduce based on the number of documents
-    if len(docs) > 1000:
-        print("Document is large, using map-reduce for summarization.")
+    if method == "auto":
+        print("Using automatic method selection for summarization.")
+        if len(docs) > 20:
+            print("Document is large, using map-reduce for summarization.")
+            summary = get_summary_with_map_reduce(docs, llm)
+        else:
+            print("Document is small, using 'stuff' method for summarization.")
+            summary = get_summary_with_stuff(docs, llm)
+    elif method == "map-reduce":
+        print("Using map-reduce method for summarization.")
         summary = get_summary_with_map_reduce(docs, llm)
     else:
-        print("Document is small, using 'stuff' method for summarization.")
+        print("Using 'stuff' method for summarization.")
         summary = get_summary_with_stuff(docs, llm)
 
     return summary
