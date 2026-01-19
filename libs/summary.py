@@ -1,3 +1,5 @@
+import asyncio
+
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
@@ -102,3 +104,14 @@ def summarize_single_pdf(
         summary = get_summary_with_stuff(docs, llm)
 
     return summary
+
+
+async def summarize_single_pdf_async(file_path: str, semaphore: asyncio.Semaphore):
+    """
+    Asynchronous wrapper for the summarize_single_pdf function, controlled by a semaphore.
+    """
+    async with semaphore:
+        loop = asyncio.get_running_loop()
+        # Run the synchronous summarize_single_pdf function in a separate thread
+        summary = await loop.run_in_executor(None, summarize_single_pdf, file_path)
+        return summary
