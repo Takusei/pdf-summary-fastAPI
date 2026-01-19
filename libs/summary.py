@@ -67,6 +67,20 @@ def get_summary_with_stuff(docs: list, llm: ChatOpenAI) -> str:
     return summary
 
 
+def get_summary_by_method(docs: list, llm: ChatOpenAI, method: str) -> str:
+    """Generates a summary of the provided documents using the specified method."""
+    use_map_reduce = (method == "map-reduce") or (
+        method == "auto" and len(docs) > 20
+    )
+
+    if use_map_reduce:
+        print("Using map-reduce method for summarization.")
+        return get_summary_with_map_reduce(docs, llm)
+    else:
+        print("Using 'stuff' method for summarization.")
+        return get_summary_with_stuff(docs, llm)
+
+
 def summarize_single_pdf(
     file_path: str,
     llm: ChatOpenAI = ChatOpenAI(
@@ -89,22 +103,7 @@ def summarize_single_pdf(
 
     if not docs:
         return "Error: The PDF file is empty or could not be read."
-
-    if method == "auto":
-        print("Using automatic method selection for summarization.")
-        if len(docs) > 20:
-            print("Document is large, using map-reduce for summarization.")
-            summary = get_summary_with_map_reduce(docs, llm)
-        else:
-            print("Document is small, using 'stuff' method for summarization.")
-            summary = get_summary_with_stuff(docs, llm)
-    elif method == "map-reduce":
-        print("Using map-reduce method for summarization.")
-        summary = get_summary_with_map_reduce(docs, llm)
-    else:
-        print("Using 'stuff' method for summarization.")
-        summary = get_summary_with_stuff(docs, llm)
-
+    summary = get_summary_by_method(docs, llm, method)
     duration = time.time() - start_time
 
     return summary, duration
