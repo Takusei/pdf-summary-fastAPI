@@ -26,7 +26,7 @@ class FolderPathRequest(BaseModel):
     folder_path: str
 
 
-@app.post("/summarize-file/", response_model=SummaryResponse)
+@app.post("/api/files/summary", response_model=SummaryResponse)
 async def summarize_file_endpoint(request: FilePathRequest):
     """
     Summarizes a single PDF file from its path.
@@ -36,7 +36,7 @@ async def summarize_file_endpoint(request: FilePathRequest):
     return {"file_path": file_path, "summary": summary, "duration": duration}
 
 
-@app.post("/summarize-folder/")
+@app.post("/api/folders/summary")
 async def summarize_folder_endpoint(request: FolderPathRequest):
     """
     Summarizes all PDF files in a given folder path recursively and in parallel using asyncio.
