@@ -27,7 +27,7 @@ async def summarize_file_endpoint(request: FilePathRequest):
     Summarizes a single PDF file from its path.
     """
     file_path = request.file_path
-    summary = summarize_single_pdf(file_path, agent)
+    summary = summarize_single_pdf(file_path)
     return {"file_path": file_path, "summary": summary}
 
 
