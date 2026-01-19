@@ -4,4 +4,10 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "fastapi[standard]>=0.128.0",
+    "langchain>=1.2.6",
+    "langchain-community>=0.4.1",
+    "langchain-openai>=1.1.7",
+    "pypdf>=6.6.0",
+]
