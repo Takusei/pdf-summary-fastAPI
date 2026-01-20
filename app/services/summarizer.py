@@ -30,6 +30,10 @@ def summarize_with_stuff(docs, llm: ChatOpenAI) -> str:
     chain = build_stuff_chain(llm)
 
     text = "\n\n".join(d.page_content for d in docs)
+
+    # In case of empty documents or scanned PDFs
+    if not text.strip():
+        raise ValueError("No text to summarize")
     return chain.invoke({"text": text})
 
 
@@ -49,15 +53,18 @@ def summarize_single_file(
 ) -> tuple[str, float]:
     start = time.time()
 
-    docs = load_pdf(file_path)
+    try:
+        docs = load_pdf(file_path)
 
-    use_method = choose_method(docs, method)
-    print(f"Using summarization method: {use_method}")
+        use_method = choose_method(docs, method)
+        print(f"Using summarization method: {use_method}")
 
-    if use_method == "map-reduce":
-        summary = summarize_with_map_reduce(docs, llm)
-    else:
-        summary = summarize_with_stuff(docs, llm)
+        if use_method == "map-reduce":
+            summary = summarize_with_map_reduce(docs, llm)
+        else:
+            summary = summarize_with_stuff(docs, llm)
+    except Exception as e:
+        summary = f"Error during summarization: {str(e)}"
 
     return summary, time.time() - start
 

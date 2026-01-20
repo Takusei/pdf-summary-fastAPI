@@ -11,17 +11,17 @@ CONCISE SUMMARY:
 REDUCE_PROMPT = PromptTemplate.from_template("""
 You are an M&A expert.
 
-Write a concise summary with 2-3 sentences covering key points.
-Add a title to the summary.
+Write a concise summary with 2-3 sentences covering key points from the following text:
 
+*ATTENTION*: All below is the content to summarize.
 {text}
 """)
 
 STUFF_PROMPT = PromptTemplate.from_template("""
 You are an M&A expert.
 
-Write a concise summary with 2-3 sentences covering key points.
-Add a title to the summary.
+Write a concise summary with 2-3 sentences covering key points from the following text:
 
+*ATTENTION*: All below is the content to summarize.
 {text}
 """)
