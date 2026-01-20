@@ -37,19 +37,18 @@ async def summarize_folder_endpoint(request: FolderPathRequest):
     Summarizes all files in a given folder path recursively and in parallel using asyncio.
     """
     start_time = time.time()
-    pdf_files = []
-    for root, _, files in os.walk(request.folder_path):
-        for file in files:
-            if file.lower().endswith(".pdf"):
-                pdf_files.append(os.path.join(root, file))
-
+    all_files = [
+        os.path.join(root, file)
+        for root, _, files in os.walk(request.folder_path)
+        for file in files
+    ]
     # Create a semaphore to limit concurrent tasks
     semaphore = asyncio.Semaphore(10)
 
     # Create a list of coroutines for summarizing each file
     tasks = [
         summarize_single_file_async(file_path, semaphore, llm_model, method="stuff")
-        for file_path in pdf_files
+        for file_path in all_files
     ]
 
     # Run all summarization tasks concurrently
@@ -57,11 +56,11 @@ async def summarize_folder_endpoint(request: FolderPathRequest):
 
     summaries = [
         {
-            "file_path": pdf_files[i],
+            "file_path": all_files[i],
             "summary": results[i][0],  # Unpack summary
             "duration": results[i][1],  # Unpack duration
         }
-        for i in range(len(pdf_files))
+        for i in range(len(all_files))
     ]
     total_duration = time.time() - start_time
     return {"summaries": summaries, "duration": total_duration}

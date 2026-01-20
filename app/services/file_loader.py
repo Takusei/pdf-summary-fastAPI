@@ -1,12 +1,14 @@
 import os
+from typing import List
 
 from langchain_community.document_loaders import (
     Docx2txtLoader,
     PyMuPDFLoader,
     UnstructuredExcelLoader,
-    UnstructuredPowerPointLoader,
+    # UnstructuredPowerPointLoader, # This need system level dependencies
 )
 from langchain_core.documents import Document
+from pptx import Presentation
 
 
 def load_pdf(file_path: str) -> list[Document]:
@@ -18,10 +20,42 @@ def load_pdf(file_path: str) -> list[Document]:
 
 
 def load_pptx(file_path: str) -> list[Document]:
-    loader = UnstructuredPowerPointLoader(file_path)
-    docs = loader.load()
-    if not docs:
-        raise ValueError("PPTX is empty or unreadable")
+    # loader = UnstructuredPowerPointLoader(file_path)
+    # docs = loader.load()
+    # if not docs:
+    #     raise ValueError("PPTX is empty or unreadable")
+    # return docs
+    prs = Presentation(file_path)
+    docs: List[Document] = []
+
+    for i, slide in enumerate(prs.slides, start=1):
+        parts = []
+
+        for shape in slide.shapes:
+            if hasattr(shape, "text"):
+                t = shape.text.strip()
+                if t:
+                    parts.append(t)
+
+        if not parts:
+            continue
+
+        text = "\n".join(parts)
+
+        title = None
+        if slide.shapes.title and slide.shapes.title.text:
+            title = slide.shapes.title.text.strip()
+
+        docs.append(
+            Document(
+                page_content=text,
+                metadata={
+                    "source": file_path,
+                    "slide": i,
+                    "title": title,
+                },
+            )
+        )
     return docs
 
 
@@ -45,6 +79,7 @@ def load_excel(file_path: str) -> list[Document]:
 FILE_LOADERS = {
     ".pdf": load_pdf,
     ".pptx": load_pptx,
+    # ".ppt": load_pptx,  # .ppt is not supported by python-pptx
     ".docx": load_docx,
     ".xls": load_excel,
     ".xlsx": load_excel,
