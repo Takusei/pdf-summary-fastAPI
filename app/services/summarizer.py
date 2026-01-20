@@ -2,7 +2,7 @@ import asyncio
 import time
 from pathlib import Path
 
-from langchain_openai import ChatOpenAI
+from langchain_openai import AzureChatOpenAI, ChatOpenAI
 
 from app.llm.chains import (
     build_map_chain,
@@ -25,7 +25,7 @@ def get_file_name_from_docs(docs: list) -> str:
     return Path(file_path).name
 
 
-def summarize_with_map_reduce(docs, llm: ChatOpenAI) -> str:
+def summarize_with_map_reduce(docs, llm: ChatOpenAI | AzureChatOpenAI) -> str:
     chunks = split_docs(docs)
 
     # Filter out empty chunks and check if there's any content left
@@ -45,7 +45,7 @@ def summarize_with_map_reduce(docs, llm: ChatOpenAI) -> str:
     return reduce_chain.invoke({"text": combined, "file_name": file_name})
 
 
-def summarize_with_stuff(docs, llm: ChatOpenAI) -> str:
+def summarize_with_stuff(docs, llm: ChatOpenAI | AzureChatOpenAI) -> str:
     chain = build_stuff_chain(llm)
     file_name = get_file_name_from_docs(docs)
 
@@ -68,7 +68,7 @@ def choose_method(docs, method: str) -> str:
 
 def summarize_single_file(
     file_path: str,
-    llm: ChatOpenAI,
+    llm: ChatOpenAI | AzureChatOpenAI,
     method: str = "auto",
 ) -> tuple[str, float]:
     start = time.time()
@@ -92,7 +92,7 @@ def summarize_single_file(
 async def summarize_single_file_async(
     file_path: str,
     semaphore: asyncio.Semaphore,
-    llm: ChatOpenAI,
+    llm: ChatOpenAI | AzureChatOpenAI,
     method: str = "auto",
 ):
     async with semaphore:
