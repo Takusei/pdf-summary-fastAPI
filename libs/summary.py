@@ -69,9 +69,7 @@ def get_summary_with_stuff(docs: list, llm: ChatOpenAI) -> str:
 
 def get_summary_by_method(docs: list, llm: ChatOpenAI, method: str) -> str:
     """Generates a summary of the provided documents using the specified method."""
-    use_map_reduce = (method == "map-reduce") or (
-        method == "auto" and len(docs) > 20
-    )
+    use_map_reduce = (method == "map-reduce") or (method == "auto" and len(docs) > 20)
 
     if use_map_reduce:
         print("Using map-reduce method for summarization.")
@@ -83,9 +81,7 @@ def get_summary_by_method(docs: list, llm: ChatOpenAI, method: str) -> str:
 
 def summarize_single_pdf(
     file_path: str,
-    llm: ChatOpenAI = ChatOpenAI(
-        model="gpt-4.1-nano", temperature=0, timeout=10, max_tokens=1000
-    ),
+    llm: ChatOpenAI,
     method: str = "stuff",
 ) -> str:
     """Summarizes the text content of a PDF file using a map-reduce strategy."""
@@ -93,16 +89,16 @@ def summarize_single_pdf(
     print(f"Summarizing file: {file_path}")
 
     if not file_path.lower().endswith(".pdf"):
-        return "Error: The provided file is not a PDF."
+        return "Error: The provided file is not a PDF.", 0
 
     try:
         loader = PyPDFLoader(file_path)
         docs = loader.load()
     except Exception as e:
-        return f"Error loading PDF: {e}"
+        return f"Error loading PDF: {e}", 0
 
     if not docs:
-        return "Error: The PDF file is empty or could not be read."
+        return "Error: The PDF file is empty or could not be read.", 0
     summary = get_summary_by_method(docs, llm, method)
     duration = time.time() - start_time
 
