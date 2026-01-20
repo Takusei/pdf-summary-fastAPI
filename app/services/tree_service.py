@@ -36,11 +36,13 @@ def _generate_tree(current_path: Path):
                 continue
 
             stat = item.stat()
+            file_type = "directory" if item.is_dir() else item.suffix
             item_data = {
                 "file_path": str(item),
                 "file_name": item.name,
                 "file_size": stat.st_size,
                 "last_modified_time": stat.st_mtime,
+                "file_type": file_type,
                 "children": None,
             }
 
