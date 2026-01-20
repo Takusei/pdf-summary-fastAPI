@@ -28,10 +28,15 @@ def get_file_name_from_docs(docs: list) -> str:
 def summarize_with_map_reduce(docs, llm: ChatOpenAI) -> str:
     chunks = split_docs(docs)
 
+    # Filter out empty chunks and check if there's any content left
+    non_empty_chunks = [d for d in chunks if d.page_content.strip()]
+    if not non_empty_chunks:
+        raise ValueError("No text to summarize after chunking")
+
     map_chain = build_map_chain(llm)
     reduce_chain = build_reduce_chain(llm)
 
-    map_inputs = [{"text": d.page_content} for d in chunks]
+    map_inputs = [{"text": d.page_content} for d in non_empty_chunks]
     map_summaries = map_chain.batch(map_inputs)
 
     combined = "\n".join(map_summaries)
@@ -42,10 +47,9 @@ def summarize_with_map_reduce(docs, llm: ChatOpenAI) -> str:
 
 def summarize_with_stuff(docs, llm: ChatOpenAI) -> str:
     chain = build_stuff_chain(llm)
+    file_name = get_file_name_from_docs(docs)
 
     text = "\n\n".join(d.page_content for d in docs)
-
-    file_name = get_file_name_from_docs(docs)
 
     # In case of empty documents or scanned PDFs
     if not text.strip():
