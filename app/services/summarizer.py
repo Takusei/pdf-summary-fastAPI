@@ -9,7 +9,7 @@ from app.llm.chains import (
     build_stuff_chain,
 )
 from app.services.chunking import split_docs
-from app.services.file_loader import load_pdf
+from app.services.file_loader import load_file
 
 
 def summarize_with_map_reduce(docs, llm: ChatOpenAI) -> str:
@@ -54,7 +54,7 @@ def summarize_single_file(
     start = time.time()
 
     try:
-        docs = load_pdf(file_path)
+        docs = load_file(file_path)
 
         use_method = choose_method(docs, method)
         print(f"Using summarization method: {use_method}")
