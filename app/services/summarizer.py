@@ -42,7 +42,7 @@ def choose_method(docs, method: str) -> str:
     return "map-reduce" if len(docs) > 20 else "stuff"
 
 
-def summarize_single_pdf(
+def summarize_single_file(
     file_path: str,
     llm: ChatOpenAI,
     method: str = "auto",
@@ -52,6 +52,7 @@ def summarize_single_pdf(
     docs = load_pdf(file_path)
 
     use_method = choose_method(docs, method)
+    print(f"Using summarization method: {use_method}")
 
     if use_method == "map-reduce":
         summary = summarize_with_map_reduce(docs, llm)
@@ -61,7 +62,7 @@ def summarize_single_pdf(
     return summary, time.time() - start
 
 
-async def summarize_single_pdf_async(
+async def summarize_single_file_async(
     file_path: str,
     semaphore: asyncio.Semaphore,
     llm: ChatOpenAI,
@@ -70,5 +71,5 @@ async def summarize_single_pdf_async(
     async with semaphore:
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(
-            None, summarize_single_pdf, file_path, llm, method
+            None, summarize_single_file, file_path, llm, method
         )

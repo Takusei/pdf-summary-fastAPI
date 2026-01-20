@@ -11,25 +11,25 @@ from app.schemas.summarize import (
     MultipleSummariesResponse,
     SingleSummaryResponse,
 )
-from app.services.summarizer import summarize_single_pdf, summarize_single_pdf_async
+from app.services.summarizer import summarize_single_file, summarize_single_file_async
 
 router = APIRouter()
 
 llm_model = initialize_model()
 
 
-@router.post("/api/files/summary", response_model=SingleSummaryResponse)
+@router.post("/file", response_model=SingleSummaryResponse)
 async def summarize_file_endpoint(request: FilePathRequest):
     """
     Summarizes a single file from its path.
     """
     file_path = request.file_path
-    summary, duration = summarize_single_pdf(file_path, llm=llm_model)
+    summary, duration = summarize_single_file(file_path, llm=llm_model, method="stuff")
     return {"file_path": file_path, "summary": summary, "duration": duration}
 
 
 @router.post(
-    "/api/folders/summary",
+    "/folder",
     response_model=MultipleSummariesResponse,
 )
 async def summarize_folder_endpoint(request: FolderPathRequest):
@@ -48,7 +48,7 @@ async def summarize_folder_endpoint(request: FolderPathRequest):
 
     # Create a list of coroutines for summarizing each file
     tasks = [
-        summarize_single_pdf_async(file_path, semaphore, llm_model)
+        summarize_single_file_async(file_path, semaphore, llm_model, method="stuff")
         for file_path in pdf_files
     ]
 
