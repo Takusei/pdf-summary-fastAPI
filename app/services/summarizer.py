@@ -157,54 +157,91 @@ async def summarize_folder(
     llm: ChatOpenAI | AzureChatOpenAI,
 ) -> MultipleSummariesResponse:
     """
-    Summarizes all files in a given folder path, using a cache if available.
+    Summarizes files in a folder with caching.
+    - If regenerate=False: Returns cached data if it exists, otherwise generates all.
+    - If regenerate=True: Intelligently updates the cache by summarizing only new or modified files.
     """
     path_obj = Path(folder_path)
-    if not regenerate:
-        cached_summaries = _get_summaries_from_db(path_obj)
-        if cached_summaries:
-            return cached_summaries
-
     start_time = time.time()
-    all_files_meta = []
+
+    # --- Regenerate=False: Fast Cache or Full Generation ---
+    if not regenerate:
+        cached_response = _get_summaries_from_db(path_obj)
+        if cached_response:
+            return cached_response
+        # If no cache, fall through to the full generation logic below
+
+    # --- Regenerate=True: Smart Update ---
+    # Or initial generation if cache was empty
+    cached_summaries_map = {}
+    if regenerate:  # Only load cache if we are in smart update mode
+        cached_response = _get_summaries_from_db(path_obj)
+        if cached_response:
+            for summary_item in cached_response.summaries:
+                cached_summaries_map[summary_item.file_path] = summary_item
+
+    # 1. Get the current state of files on disk
+    current_files_meta = {}
     for root, _, files in os.walk(folder_path):
         for file in files:
+            if file == DB_FILE_NAME:
+                continue
             file_path = Path(root) / file
             try:
                 stat = file_path.stat()
                 file_type = "directory" if file_path.is_dir() else file_path.suffix
-                all_files_meta.append(
-                    {
-                        "file_path": str(file_path),
-                        "file_name": file_path.name,
-                        "file_size": stat.st_size,
-                        "last_modified_time": stat.st_mtime,
-                        "file_type": file_type,
-                    }
-                )
+                current_files_meta[str(file_path)] = {
+                    "file_path": str(file_path),
+                    "file_name": file_path.name,
+                    "file_size": stat.st_size,
+                    "last_modified_time": stat.st_mtime,
+                    "file_type": file_type,
+                }
             except FileNotFoundError:
                 continue
 
-    semaphore = asyncio.Semaphore(10)
-    tasks = [
-        summarize_single_file_async(
-            file_meta["file_path"], semaphore, llm, method="stuff"
-        )
-        for file_meta in all_files_meta
-    ]
+    # 2. Decide which files to summarize
+    files_to_summarize_meta = []
+    final_summaries = []
 
-    results = await asyncio.gather(*tasks)
+    for path, meta in current_files_meta.items():
+        cached_item = cached_summaries_map.get(path)
+        # Summarize if:
+        # - We are doing a full generation (cache was empty)
+        # - We are in smart update mode AND the item is new or modified
+        if not cached_item or (
+            regenerate and cached_item.last_modified_time != meta["last_modified_time"]
+        ):
+            files_to_summarize_meta.append(meta)
+        else:
+            # This file is unchanged, reuse the cached summary
+            final_summaries.append(cached_item.model_dump())
 
-    summaries = [
-        {
-            **all_files_meta[i],
-            "summary": results[i][0],
-            "duration": results[i][1],
-        }
-        for i in range(len(all_files_meta))
-    ]
+    # 3. Summarize only the necessary files
+    if files_to_summarize_meta:
+        semaphore = asyncio.Semaphore(10)
+        tasks = [
+            summarize_single_file_async(
+                file_meta["file_path"], semaphore, llm, method="stuff"
+            )
+            for file_meta in files_to_summarize_meta
+        ]
+        new_results = await asyncio.gather(*tasks)
+
+        for i, file_meta in enumerate(files_to_summarize_meta):
+            summary, duration = new_results[i]
+            summary_data = {
+                **file_meta,
+                "summary": summary,
+                "duration": duration,
+            }
+            final_summaries.append(summary_data)
+
+    # 4. Create final response and save to cache
     total_duration = time.time() - start_time
-    response = MultipleSummariesResponse(summaries=summaries, duration=total_duration)
+    response = MultipleSummariesResponse(
+        summaries=final_summaries, duration=total_duration
+    )
 
     _save_summaries_to_db(path_obj, response)
     return response
