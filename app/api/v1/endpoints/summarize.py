@@ -9,7 +9,8 @@ from app.schemas.summarize import (
     MultipleSummariesResponse,
     SingleSummaryResponse,
 )
-from app.services.summarizer import summarize_folder, summarize_single_file
+from app.services.summarizer.file import summarize_single_file
+from app.services.summarizer.folder import summarize_folder
 
 router = APIRouter()
 

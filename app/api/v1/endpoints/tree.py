@@ -3,7 +3,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 
 from app.schemas.tree import TreeRequest
-from app.services.tree_service import get_tree
+from app.services.tree_generator import get_tree
 
 router = APIRouter()
 
