@@ -29,7 +29,7 @@ def check_diff(folder_path: Path) -> bool:
                 flatten_tree(node["children"])
 
     flatten_tree(cached_tree)
-    print(f"Cached files: {len(cached_files)} items")
+
     # Get the current state of files on disk.
     current_files = {}
     try:
