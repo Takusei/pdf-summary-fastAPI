@@ -1,27 +1,54 @@
 from langchain_core.prompts import PromptTemplate
 
 MAP_PROMPT = PromptTemplate.from_template("""
-Write a concise summary of the following text:
+You are an expert summarizer.
 
+Task:
+- Summarize the following text chunk
+- Focus only on key facts and ideas explicitly stated
+- Do NOT add interpretation or conclusions beyond the text
+- Write 1-2 concise sentences
+
+*ATTENTION*: The text below is a PARTIAL chunk of a larger document.
 {text}
 
-CONCISE SUMMARY:
+CHUNK SUMMARY:
 """)
 
 REDUCE_PROMPT = PromptTemplate.from_template("""
-You are an M&A expert.
+You are an expert summarizer.
 
-Write a concise summary with 2-3 sentences covering key points from the following text:
+The text below consists of PARTIAL SUMMARIES from different sections of the same document.
 
-*ATTENTION*: All below is the content to summarize.
+Task:
+- Merge these summaries into ONE coherent final summary
+- Eliminate redundancy and repeated points
+- Identify the most important GLOBAL themes
+- Write 2-3 concise sentences for the summary
+- Add a short, informative title on the first line
+
+Format:
+Title: <title>
+Summary: <2-3 sentences>
+
+*ATTENTION*: The text below is NOT raw document content.
 {text}
 """)
 
 STUFF_PROMPT = PromptTemplate.from_template("""
-You are an M&A expert.
+You are an M&A professional experienced in reviewing transaction-related documents.
 
-Write a concise summary with 2-3 sentences covering key points from the following text:
+Context (metadata, NOT part of the content):
+- File name: {file_name}
 
-*ATTENTION*: All below is the content to summarize.
+Task:
+- Write a concise executive-level summary covering the key points relevant to an M&A engagement
+- Focus on aspects such as purpose, scope, structure, risks, or implications if present
+- Use 2-3 sentences
+- Do NOT introduce information not explicitly supported by the text
+
+Format:
+Summary: <2-3 sentences>
+*ATTENTION*: The text below is the FULL content to summarize.
 {text}
 """)

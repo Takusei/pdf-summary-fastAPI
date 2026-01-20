@@ -1,5 +1,6 @@
 import asyncio
 import time
+from pathlib import Path
 
 from langchain_openai import ChatOpenAI
 
@@ -12,6 +13,18 @@ from app.services.chunking import split_docs
 from app.services.file_loader import load_file
 
 
+def get_file_name_from_docs(docs: list) -> str:
+    if not docs:
+        return "unknown"
+
+    file_path = docs[0].metadata.get("file_path") or docs[0].metadata.get("source")
+
+    if not file_path:
+        return "unknown"
+
+    return Path(file_path).name
+
+
 def summarize_with_map_reduce(docs, llm: ChatOpenAI) -> str:
     chunks = split_docs(docs)
 
@@ -22,8 +35,9 @@ def summarize_with_map_reduce(docs, llm: ChatOpenAI) -> str:
     map_summaries = map_chain.batch(map_inputs)
 
     combined = "\n".join(map_summaries)
+    file_name = get_file_name_from_docs(docs)
 
-    return reduce_chain.invoke({"text": combined})
+    return reduce_chain.invoke({"text": combined, "file_name": file_name})
 
 
 def summarize_with_stuff(docs, llm: ChatOpenAI) -> str:
@@ -31,10 +45,12 @@ def summarize_with_stuff(docs, llm: ChatOpenAI) -> str:
 
     text = "\n\n".join(d.page_content for d in docs)
 
+    file_name = get_file_name_from_docs(docs)
+
     # In case of empty documents or scanned PDFs
     if not text.strip():
         raise ValueError("No text to summarize")
-    return chain.invoke({"text": text})
+    return chain.invoke({"text": text, "file_name": file_name})
 
 
 def choose_method(docs, method: str) -> str:
