@@ -1,8 +1,11 @@
 from pathlib import Path
 
-from app.services.cache_utils import get_json_from_cache, save_json_to_cache
-
-SAVED_TREE_DB = ".treecache.db"
+from app.cache.utils import (
+    SAVED_TREE_DB,
+    get_json_from_cache,
+    is_cache_file,
+    save_json_to_cache,
+)
 
 
 def get_tree(path: Path, regenerate: bool = False):
@@ -30,7 +33,7 @@ def _generate_tree(current_path: Path):
     try:
         for item in sorted(current_path.iterdir()):
             # Skip the cache file
-            if item.name == SAVED_TREE_DB:
+            if is_cache_file(item.name):
                 continue
 
             stat = item.stat()

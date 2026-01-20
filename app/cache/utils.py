@@ -3,6 +3,16 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Optional
 
+SAVED_SUMMARY_DB = ".summarycache.db"
+SAVED_TREE_DB = ".treecache.db"
+
+
+def is_cache_file(file_name: str) -> bool:
+    """
+    Check if the given file name is a recognized cache file.
+    """
+    return file_name in {SAVED_SUMMARY_DB, SAVED_TREE_DB}
+
 
 def get_json_from_cache(db_path: Path, key: str) -> Optional[Any]:
     """

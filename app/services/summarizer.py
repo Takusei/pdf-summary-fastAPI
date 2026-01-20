@@ -5,17 +5,20 @@ from pathlib import Path
 
 from langchain_openai import AzureChatOpenAI, ChatOpenAI
 
+from app.cache.utils import (
+    SAVED_SUMMARY_DB,
+    get_json_from_cache,
+    is_cache_file,
+    save_json_to_cache,
+)
 from app.llm.chains import (
     build_map_chain,
     build_reduce_chain,
     build_stuff_chain,
 )
 from app.schemas.summarize import MultipleSummariesResponse
-from app.services.cache_utils import get_json_from_cache, save_json_to_cache
 from app.services.chunking import split_docs
 from app.services.file_loader import load_file
-
-DB_FILE_NAME = ".summarycache.db"
 
 
 def get_file_name_from_docs(docs: list) -> str:
@@ -118,7 +121,7 @@ async def summarize_folder(
     - If regenerate=True: Intelligently updates the cache by summarizing only new or modified files.
     """
     path_obj = Path(folder_path)
-    db_path = path_obj / DB_FILE_NAME
+    db_path = path_obj / SAVED_SUMMARY_DB
     start_time = time.time()
 
     # --- Regenerate=False: Fast Cache or Full Generation ---
@@ -146,7 +149,7 @@ async def summarize_folder(
     current_files_meta = {}
     for root, _, files in os.walk(folder_path):
         for file in files:
-            if file == DB_FILE_NAME:
+            if is_cache_file(file):
                 continue
             file_path = Path(root) / file
             try:
@@ -181,6 +184,7 @@ async def summarize_folder(
 
     # 3. Summarize only the necessary files
     if files_to_summarize_meta:
+        print("Summarizing files:", [f["file_path"] for f in files_to_summarize_meta])
         semaphore = asyncio.Semaphore(10)
         tasks = [
             summarize_single_file_async(
@@ -198,6 +202,8 @@ async def summarize_folder(
                 "duration": duration,
             }
             final_summaries.append(summary_data)
+    else:
+        print("All summaries loaded from cache; no files needed summarization.")
 
     # 4. Create final response and save to cache
     total_duration = time.time() - start_time
