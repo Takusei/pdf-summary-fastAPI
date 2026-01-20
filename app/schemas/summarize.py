@@ -4,6 +4,10 @@ from pydantic.alias_generators import to_camel
 
 class SingleSummaryResponse(BaseModel):
     file_path: str
+    file_name: str
+    file_size: int
+    last_modified_time: float
+    file_type: str
     summary: str
     duration: float
 
