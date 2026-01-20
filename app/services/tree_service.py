@@ -1,6 +1,6 @@
-import json
-import sqlite3
 from pathlib import Path
+
+from app.services.cache_utils import get_json_from_cache, save_json_to_cache
 
 SAVED_TREE_DB = ".treecache.db"
 
@@ -12,15 +12,13 @@ def get_tree(path: Path, regenerate: bool = False):
     If not found or regeneration is forced, it generates the tree, saves it to the cache, and returns it.
     """
     db_path = path / SAVED_TREE_DB
-    if not regenerate and db_path.exists():
-        try:
-            return _get_tree_from_db(db_path)
-        except (sqlite3.Error, json.JSONDecodeError):
-            # Handle potential DB corruption or invalid data
-            pass
+    if not regenerate:
+        cached_tree = get_json_from_cache(db_path, "tree")
+        if cached_tree:
+            return cached_tree
 
     tree = _generate_tree(path)
-    _save_tree_to_db(db_path, tree)
+    save_json_to_cache(db_path, "tree", tree)
     return tree
 
 
@@ -53,32 +51,3 @@ def _generate_tree(current_path: Path):
     except FileNotFoundError:
         return []
     return tree
-
-
-def _get_tree_from_db(db_path: Path):
-    """
-    Retrieve the tree structure from the SQLite database.
-    """
-    conn = sqlite3.connect(db_path)
-    c = conn.cursor()
-    c.execute("SELECT value FROM cache WHERE key='tree'")
-    result = c.fetchone()
-    conn.close()
-    if result:
-        return json.loads(result[0])
-    return None
-
-
-def _save_tree_to_db(db_path: Path, tree: dict):
-    """
-    Save the tree structure to the SQLite database.
-    """
-    conn = sqlite3.connect(db_path)
-    c = conn.cursor()
-    c.execute("CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY, value TEXT)")
-    c.execute(
-        "INSERT OR REPLACE INTO cache (key, value) VALUES (?, ?)",
-        ("tree", json.dumps(tree)),
-    )
-    conn.commit()
-    conn.close()

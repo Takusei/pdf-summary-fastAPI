@@ -1,7 +1,5 @@
 import asyncio
-import json
 import os
-import sqlite3
 import time
 from pathlib import Path
 
@@ -13,6 +11,7 @@ from app.llm.chains import (
     build_stuff_chain,
 )
 from app.schemas.summarize import MultipleSummariesResponse
+from app.services.cache_utils import get_json_from_cache, save_json_to_cache
 from app.services.chunking import split_docs
 from app.services.file_loader import load_file
 
@@ -108,49 +107,6 @@ async def summarize_single_file_async(
         )
 
 
-def _get_summaries_from_db(
-    folder_path: Path,
-) -> MultipleSummariesResponse | None:
-    """
-    Retrieve the summary structure from the SQLite database.
-    """
-    db_path = folder_path / DB_FILE_NAME
-    if not db_path.exists():
-        return None
-
-    conn = sqlite3.connect(db_path)
-    c = conn.cursor()
-    try:
-        c.execute("SELECT value FROM cache WHERE key='summaries'")
-        result = c.fetchone()
-        if not result:
-            return None
-
-        data = json.loads(result[0])
-        return MultipleSummariesResponse(**data)
-    except (sqlite3.Error, json.JSONDecodeError):
-        # Handle potential DB corruption or invalid data
-        return None
-    finally:
-        conn.close()
-
-
-def _save_summaries_to_db(folder_path: Path, response: MultipleSummariesResponse):
-    """
-    Save the summary structure to the SQLite database.
-    """
-    db_path = folder_path / DB_FILE_NAME
-    conn = sqlite3.connect(db_path)
-    c = conn.cursor()
-    c.execute("CREATE TABLE IF NOT EXISTS cache (key TEXT PRIMARY KEY, value TEXT)")
-    c.execute(
-        "INSERT OR REPLACE INTO cache (key, value) VALUES (?, ?)",
-        ("summaries", response.model_dump_json()),
-    )
-    conn.commit()
-    conn.close()
-
-
 async def summarize_folder(
     folder_path: str,
     regenerate: bool,
@@ -162,21 +118,27 @@ async def summarize_folder(
     - If regenerate=True: Intelligently updates the cache by summarizing only new or modified files.
     """
     path_obj = Path(folder_path)
+    db_path = path_obj / DB_FILE_NAME
     start_time = time.time()
 
     # --- Regenerate=False: Fast Cache or Full Generation ---
     if not regenerate:
-        cached_response = _get_summaries_from_db(path_obj)
-        if cached_response:
-            return cached_response
+        cached_data = get_json_from_cache(db_path, "summaries")
+        if cached_data:
+            return MultipleSummariesResponse(**cached_data)
         # If no cache, fall through to the full generation logic below
 
     # --- Regenerate=True: Smart Update ---
     # Or initial generation if cache was empty
     cached_summaries_map = {}
-    if regenerate:  # Only load cache if we are in smart update mode
-        cached_response = _get_summaries_from_db(path_obj)
-        if cached_response:
+
+    # We load cache if we are in smart update mode (regenerate=True) OR if we just missed a cache hit above (implicit in flow)
+    # However, if regenerate=False and we are here, it means cache didn't exist, so map is empty.
+    # If regenerate=True, we WANT to load the cache to diff against it.
+    if regenerate:
+        cached_data = get_json_from_cache(db_path, "summaries")
+        if cached_data:
+            cached_response = MultipleSummariesResponse(**cached_data)
             for summary_item in cached_response.summaries:
                 cached_summaries_map[summary_item.file_path] = summary_item
 
@@ -243,5 +205,5 @@ async def summarize_folder(
         summaries=final_summaries, duration=total_duration
     )
 
-    _save_summaries_to_db(path_obj, response)
+    save_json_to_cache(db_path, "summaries", response.model_dump())
     return response
