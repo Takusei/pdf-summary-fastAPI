@@ -16,9 +16,11 @@ dependencies = [
     "openpyxl>=3.1.5",
     "pandas>=2.3.3",
     "pydantic-settings>=2.12.0",
+    "python-dotenv>=1.0.1",
     "pymupdf>=1.26.7",
     "pypdf>=6.6.0",
     "python-magic>=0.4.27",
     "python-pptx>=1.0.2",
     "unstructured>=0.18.27",
+    "pyinstaller>=6.12.0",
 ]
