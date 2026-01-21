@@ -1,10 +1,11 @@
 import os
 from typing import List
 
+import pandas as pd
 from langchain_community.document_loaders import (
     Docx2txtLoader,
     PyMuPDFLoader,
-    UnstructuredExcelLoader,
+    # UnstructuredExcelLoader, # This need unstructured package, but python-magic is not available in all environments
     # UnstructuredPowerPointLoader, # This need system level dependencies
 )
 from langchain_core.documents import Document
@@ -68,10 +69,29 @@ def load_docx(file_path: str) -> list[Document]:
 
 
 def load_excel(file_path: str) -> list[Document]:
-    loader = UnstructuredExcelLoader(file_path)
-    docs = loader.load()
+    try:
+        sheets = pd.read_excel(file_path, sheet_name=None)
+    except Exception as exc:
+        raise ValueError("Excel file is empty or unreadable") from exc
+
+    docs: List[Document] = []
+    for sheet_name, df in sheets.items():
+        if df is None or df.empty:
+            continue
+        text = f"Sheet: {sheet_name}\n" + df.to_csv(index=False)
+        docs.append(
+            Document(
+                page_content=text,
+                metadata={
+                    "source": file_path,
+                    "sheet": sheet_name,
+                },
+            )
+        )
+
     if not docs:
         raise ValueError("Excel file is empty or unreadable")
+
     return docs
 
 
