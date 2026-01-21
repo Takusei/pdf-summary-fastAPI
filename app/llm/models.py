@@ -18,7 +18,7 @@ def initialize_model():
             model=AZURE_OPENAI_DEPLOYMENT_NAME,
             azure_endpoint=AZURE_OPENAI_ENDPOINT,
             api_version=AZURE_OPENAI_API_VERSION,
-            azure_ad_token=AZURE_TOKEN_PROVIDER,
+            azure_ad_token_provider=AZURE_TOKEN_PROVIDER,
             temperature=0,
             timeout=1000,
             max_retries=3,
