@@ -50,5 +50,6 @@ async def summarize_folder_endpoint(request: FolderPathRequest):
     return await summarize_folder(
         folder_path=request.folder_path,
         regenerate=request.regenerate,
+        sync=request.sync,
         llm=llm_model,
     )

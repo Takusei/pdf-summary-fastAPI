@@ -32,6 +32,7 @@ class FilePathRequest(BaseModel):
 class FolderPathRequest(BaseModel):
     folder_path: str
     regenerate: bool = False
+    sync: bool = False
 
     class Config:
         alias_generator = to_camel

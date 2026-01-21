@@ -18,32 +18,34 @@ from app.services.summarizer.file import summarize_single_file_async
 async def summarize_folder(
     folder_path: str,
     regenerate: bool,
+    sync: bool,
     llm: ChatOpenAI | AzureChatOpenAI,
 ) -> MultipleSummariesResponse:
     """
     Summarizes files in a folder with caching.
-    - If regenerate=False: Returns cached data if it exists, otherwise generates all.
-    - If regenerate=True: Intelligently updates the cache by summarizing only new or modified files.
+    - If regenerate=True: Forces regeneration of all summaries, ignoring any cache.
+    - If sync=True: Intelligently updates the cache by summarizing only new or modified files.
+    - If regenerate=False and sync=False: Returns cached data if it exists, otherwise generates all.
     """
     path_obj = Path(folder_path)
     db_path = path_obj / SAVED_SUMMARY_DB
     start_time = time.time()
 
-    # --- Regenerate=False: Fast Cache or Full Generation ---
-    if not regenerate:
+    # --- Force regenerate: ignore cache ---
+    if regenerate:
+        print("Regenerate is True. Clearing cache and starting fresh.")
+        # The logic will proceed to summarize all files as if no cache exists.
+        pass
+    # --- Fast Cache check (if not regenerating or syncing) ---
+    elif not sync:
         cached_data = get_json_from_cache(db_path, "summaries")
         if cached_data:
             return MultipleSummariesResponse(**cached_data)
         # If no cache, fall through to the full generation logic below
 
-    # --- Regenerate=True: Smart Update ---
-    # Or initial generation if cache was empty
+    # --- Sync (Smart Update) or Initial Generation ---
     cached_summaries_map = {}
-
-    # We load cache if we are in smart update mode (regenerate=True) OR if we just missed a cache hit above (implicit in flow)
-    # However, if regenerate=False and we are here, it means cache didn't exist, so map is empty.
-    # If regenerate=True, we WANT to load the cache to diff against it.
-    if regenerate:
+    if sync and not regenerate:
         cached_data = get_json_from_cache(db_path, "summaries")
         if cached_data:
             cached_response = MultipleSummariesResponse(**cached_data)
@@ -74,18 +76,22 @@ async def summarize_folder(
     files_to_summarize_meta = []
     final_summaries = []
 
-    for path, meta in current_files_meta.items():
-        cached_item = cached_summaries_map.get(path)
-        # Summarize if:
-        # - We are doing a full generation (cache was empty)
-        # - We are in smart update mode AND the item is new or modified
-        if not cached_item or (
-            regenerate and cached_item.last_modified_time != meta["last_modified_time"]
-        ):
-            files_to_summarize_meta.append(meta)
-        else:
-            # This file is unchanged, reuse the cached summary
-            final_summaries.append(cached_item.model_dump())
+    if regenerate:
+        # If regenerating, all current files must be summarized.
+        files_to_summarize_meta = list(current_files_meta.values())
+    else:
+        for path, meta in current_files_meta.items():
+            cached_item = cached_summaries_map.get(path)
+            # Summarize if:
+            # - No cached item exists.
+            # - We are in sync mode and the file is modified.
+            if not cached_item or (
+                sync and cached_item.last_modified_time != meta["last_modified_time"]
+            ):
+                files_to_summarize_meta.append(meta)
+            else:
+                # This file is unchanged, reuse the cached summary
+                final_summaries.append(cached_item.model_dump())
 
     # 3. Summarize only the necessary files
     if files_to_summarize_meta:
