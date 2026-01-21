@@ -8,7 +8,7 @@ from app.services.diff_check import check_diff
 router = APIRouter()
 
 
-@router.post("/", response_model=DiffResponse)
+@router.post("", response_model=DiffResponse)
 def get_diff_endpoint(request: DiffRequest) -> DiffResponse:
     """
     Checks if there are any file changes in the given folder path

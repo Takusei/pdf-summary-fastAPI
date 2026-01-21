@@ -8,7 +8,7 @@ from app.services.tree_generator import get_tree
 router = APIRouter()
 
 
-@router.post("/")
+@router.post("")
 def read_tree(request: TreeRequest):
     """
     Get the directory tree structure for a given folder path.
