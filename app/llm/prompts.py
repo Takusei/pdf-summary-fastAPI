@@ -42,9 +42,9 @@ Context (metadata, NOT part of the content):
 - File name: {file_name}
 
 Task:
-- Write a concise executive-level summary covering the key points relevant to an M&A engagement
-- Focus on aspects such as purpose, scope, structure, risks, or implications if present
+- Write a concise executive-level summary covering the key points of the entire document
 - Use 2-3 sentences
+- Summarize in the language of the document, whether English, Japanese, or Chinese. Detect language automatically.
 - Do NOT introduce information not explicitly supported by the text
 
 Format:
