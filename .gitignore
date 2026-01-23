@@ -12,3 +12,7 @@ wheels/
 .env
 
 backend.spec
+
+data
+
+chroma_db/
