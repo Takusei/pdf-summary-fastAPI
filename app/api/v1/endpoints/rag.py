@@ -37,6 +37,7 @@ async def index_folder_endpoint(request: IndexFolderRequest):
         "added": result["added"],
         "updated": result["updated"],
         "skipped": result["skipped"],
+        "deleted": result["deleted"],
         "duration": duration,
     }
 

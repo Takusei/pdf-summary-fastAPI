@@ -16,6 +16,7 @@ class IndexFolderResponse(BaseModel):
     added: int
     updated: int
     skipped: int
+    deleted: int
     duration: float
 
     class Config:
