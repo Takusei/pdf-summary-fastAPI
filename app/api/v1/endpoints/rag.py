@@ -6,7 +6,13 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 
 from app.rag.indexer import index_folder
-from app.schemas.rag import IndexFolderRequest, IndexFolderResponse
+from app.rag.qa_agent import answer_question
+from app.schemas.rag import (
+    IndexFolderRequest,
+    IndexFolderResponse,
+    RagQueryRequest,
+    RagQueryResponse,
+)
 
 router = APIRouter()
 
@@ -31,5 +37,28 @@ async def index_folder_endpoint(request: IndexFolderRequest):
         "added": result["added"],
         "updated": result["updated"],
         "skipped": result["skipped"],
+        "duration": duration,
+    }
+
+
+@router.post("/query", response_model=RagQueryResponse)
+async def rag_query_endpoint(request: RagQueryRequest):
+    """
+    Ask a question and retrieve relevant chunks using a RAG agent.
+    """
+    start = time.perf_counter()
+    answer, sources = answer_question(request.question, k=request.top_k)
+    duration = time.perf_counter() - start
+
+    return {
+        "question": request.question,
+        "answer": answer,
+        "sources": [
+            {
+                "content": doc.page_content,
+                "metadata": doc.metadata,
+            }
+            for doc in sources
+        ],
         "duration": duration,
     }

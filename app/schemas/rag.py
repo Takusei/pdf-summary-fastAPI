@@ -20,3 +20,32 @@ class IndexFolderResponse(BaseModel):
     class Config:
         alias_generator = to_camel
         populate_by_name = True
+
+
+class RagQueryRequest(BaseModel):
+    question: str
+    top_k: int = 4
+
+    class Config:
+        alias_generator = to_camel
+        populate_by_name = True
+
+
+class RagSource(BaseModel):
+    content: str
+    metadata: dict
+
+    class Config:
+        alias_generator = to_camel
+        populate_by_name = True
+
+
+class RagQueryResponse(BaseModel):
+    question: str
+    answer: str
+    sources: list[RagSource]
+    duration: float
+
+    class Config:
+        alias_generator = to_camel
+        populate_by_name = True
