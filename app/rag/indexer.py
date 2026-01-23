@@ -106,6 +106,8 @@ def index_folder(folder: Path, regenerate: bool = False) -> dict[str, int]:
     print(f"  Deleted: {len(deleted_sources)}")
     print(f"  Skipped: {skipped}")
 
+    # ToDO: When generate the DB, and remove the DB folder manually, the next time,
+    # it will not create the persistent collection again.
     return {
         "added": added,
         "updated": updated,
