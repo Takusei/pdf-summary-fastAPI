@@ -8,7 +8,7 @@ from app.rag.vector_store import get_vector_store
 
 
 def index_folder(folder: Path) -> dict[str, int]:
-    vector_store = get_vector_store()
+    vector_store = get_vector_store(folder)
     splitter = get_splitter()
 
     added = 0

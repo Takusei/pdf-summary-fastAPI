@@ -24,6 +24,7 @@ class IndexFolderResponse(BaseModel):
 
 class RagQueryRequest(BaseModel):
     question: str
+    folder_path: str
     top_k: int = 4
 
     class Config:

@@ -46,8 +46,16 @@ async def rag_query_endpoint(request: RagQueryRequest):
     """
     Ask a question and retrieve relevant chunks using a RAG agent.
     """
+    folder_path = Path(request.folder_path)
+    if not folder_path.exists() or not folder_path.is_dir():
+        raise HTTPException(
+            status_code=400, detail="folder_path must be an existing directory"
+        )
+
     start = time.perf_counter()
-    answer, sources = answer_question(request.question, k=request.top_k)
+    answer, sources = answer_question(
+        request.question, folder=str(folder_path), k=request.top_k
+    )
     duration = time.perf_counter() - start
 
     return {

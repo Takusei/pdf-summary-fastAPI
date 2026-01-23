@@ -23,8 +23,8 @@ def _collect_documents(messages: Iterable[BaseMessage]) -> List[Document]:
     return docs
 
 
-def build_rag_agent(k: int = 4):
-    vector_store = get_vector_store()
+def build_rag_agent(folder: str, k: int = 4):
+    vector_store = get_vector_store(folder)
 
     @tool(response_format="content_and_artifact")
     def retrieve_context(query: str):
@@ -47,8 +47,10 @@ def build_rag_agent(k: int = 4):
     return agent
 
 
-def answer_question(question: str, k: int = 4) -> tuple[str, List[Document]]:
-    agent = build_rag_agent(k=k)
+def answer_question(
+    question: str, folder: str, k: int = 4
+) -> tuple[str, List[Document]]:
+    agent = build_rag_agent(folder=folder, k=k)
     result = agent.invoke({"messages": [{"role": "user", "content": question}]})
 
     messages = result.get("messages", [])
