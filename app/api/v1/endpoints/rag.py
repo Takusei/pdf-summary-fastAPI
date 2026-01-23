@@ -5,8 +5,8 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 
+from app.rag.agent import answer_question
 from app.rag.indexer import index_folder
-from app.rag.qa_agent import answer_question
 from app.schemas.rag import (
     IndexFolderRequest,
     IndexFolderResponse,
