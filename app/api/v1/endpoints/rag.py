@@ -29,7 +29,7 @@ async def index_folder_endpoint(request: IndexFolderRequest):
         )
 
     start = time.perf_counter()
-    result = index_folder(folder_path)
+    result = index_folder(folder_path, regenerate=request.regenerate)
     duration = time.perf_counter() - start
 
     return {

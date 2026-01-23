@@ -7,7 +7,14 @@ from app.rag.splitter import get_splitter
 from app.rag.vector_store import get_vector_store
 
 
-def index_folder(folder: Path) -> dict[str, int]:
+def index_folder(folder: Path, regenerate: bool = False) -> dict[str, int]:
+    """Index all supported files under a folder and store embeddings in Chroma.
+    Args:
+        folder (Path): The folder to index.
+        regenerate (bool): If True, reprocess all files even if they haven't changed.
+    Returns:
+        dict[str, int]: A dictionary with counts of added, updated, and skipped files.
+    """
     vector_store = get_vector_store(folder)
     splitter = get_splitter()
 
@@ -26,7 +33,7 @@ def index_folder(folder: Path) -> dict[str, int]:
 
         needs_update = True
 
-        if existing["ids"]:
+        if not regenerate and existing["ids"]:
             old_mtime = existing["metadatas"][0].get("mtime")
             if old_mtime == mtime:
                 skipped += 1
