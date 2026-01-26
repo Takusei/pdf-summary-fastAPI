@@ -27,11 +27,11 @@ def _load_pdf_file(path: Path) -> List[Document]:
 
 
 def load_file(path: Path) -> List[Document]:
-    suffix = path.suffix.lower()
-    if suffix == ".txt":
-        return _load_txt_file(path)
-    if suffix == ".pdf":
-        return _load_pdf_file(path)
+    # suffix = path.suffix.lower()
+    # if suffix == ".txt":
+    #     return _load_txt_file(path)
+    # if suffix == ".pdf":
+    #     return _load_pdf_file(path)
     try:
         return load_office_file(str(path))
     except ValueError:
@@ -39,7 +39,7 @@ def load_file(path: Path) -> List[Document]:
 
 
 def iter_supported_files(folder: Path) -> Iterable[Path]:
-    supported = {".txt", ".pdf", ".pptx", ".docx", ".xls", ".xlsx"}
+    supported = {".pdf", ".pptx", ".docx", ".xls", ".xlsx"}
     for path in folder.rglob("*"):
         if not path.is_file():
             continue

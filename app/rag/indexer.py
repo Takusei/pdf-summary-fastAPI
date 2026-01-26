@@ -23,6 +23,7 @@ def _should_update(existing, mtime: float, regenerate: bool) -> bool:
     if regenerate or not existing["ids"]:
         return True
     old_mtime = existing["metadatas"][0].get("mtime")
+    print(f"  Existing mtime: {old_mtime}, Current mtime: {mtime}")
     return old_mtime != mtime
 
 
@@ -34,7 +35,9 @@ def _upsert_file(vector_store, splitter, path: Path, existing) -> None:
         vector_store.delete(ids=existing["ids"])
 
     docs = load_file(path)
-    if not docs:
+
+    # Skip files that yield no content
+    if not docs or all(not d.page_content.strip() for d in docs):
         return
 
     splits = splitter.split_documents(docs)
@@ -85,12 +88,13 @@ def index_folder(folder: Path, regenerate: bool = False) -> dict[str, int]:
     for path in paths:
         source = str(path.resolve())
         mtime = path.stat().st_mtime
+        print(f"Indexing: {source}")
         existing = _get_existing_for_source(vector_store, source)
-
         if not _should_update(existing, mtime, regenerate):
+            print("  Skipping file (no changes)...", source)
             skipped += 1
             continue
-
+        print("  Updating index for file...", source)
         if existing["ids"]:
             updated += 1
         else:
