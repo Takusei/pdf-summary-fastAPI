@@ -29,7 +29,7 @@ def _should_update(existing, mtime: float, regenerate: bool) -> bool:
     return old_mtime != mtime
 
 
-def _upsert_file(vector_store, splitter, path: Path, existing) -> None:
+def _upsert_file(vector_store, splitter, path: Path, existing) -> bool:
     source = str(path.resolve())
     mtime = path.stat().st_mtime
 
@@ -40,7 +40,7 @@ def _upsert_file(vector_store, splitter, path: Path, existing) -> None:
 
     # Skip files that yield no content
     if not docs or all(not d.page_content.strip() for d in docs):
-        return
+        return False
 
     splits = splitter.split_documents(docs)
     for d in splits:
@@ -48,6 +48,7 @@ def _upsert_file(vector_store, splitter, path: Path, existing) -> None:
 
     filtered_splits = filter_complex_metadata(splits)
     vector_store.add_documents(filtered_splits)
+    return True
 
 
 def _delete_removed_sources(vector_store, current_sources: set[str]) -> set[str]:
@@ -77,7 +78,7 @@ def index_folder(folder: Path, regenerate: bool = False) -> dict[str, int]:
         folder (Path): The folder to index.
         regenerate (bool): If True, reprocess all files even if they haven't changed.
     Returns:
-        dict[str, int]: A dictionary with counts of added, updated, and skipped files.
+        dict[str, int]: A dictionary with counts of added, updated, skipped, and errors.
     """
     vector_store = get_vector_store(folder)
     splitter = get_splitter()
@@ -85,6 +86,7 @@ def index_folder(folder: Path, regenerate: bool = False) -> dict[str, int]:
     added = 0
     updated = 0
     skipped = 0
+    errors = 0
 
     paths, current_sources = _collect_paths(folder)
 
@@ -98,12 +100,21 @@ def index_folder(folder: Path, regenerate: bool = False) -> dict[str, int]:
             skipped += 1
             continue
         print("  Updating index for file...", source)
+        try:
+            indexed = _upsert_file(vector_store, splitter, path, existing)
+        except Exception as exc:
+            errors += 1
+            print(f"  Error indexing file: {source} -> {exc}")
+            continue
+
+        if not indexed:
+            skipped += 1
+            continue
+
         if existing["ids"]:
             updated += 1
         else:
             added += 1
-
-        _upsert_file(vector_store, splitter, path, existing)
 
     deleted_sources = _delete_removed_sources(vector_store, current_sources)
 
@@ -112,12 +123,14 @@ def index_folder(folder: Path, regenerate: bool = False) -> dict[str, int]:
     print(f"  Updated: {updated}")
     print(f"  Deleted: {len(deleted_sources)}")
     print(f"  Skipped: {skipped}")
+    print(f"  Errors:  {errors}")
 
     # ToDO: When generate the DB, and remove the DB folder manually, the next time,
     # it will not create the persistent collection again.
     return {
         "added": added,
         "updated": updated,
-        "skipped": skipped,
         "deleted": len(deleted_sources),
+        "skipped": skipped,
+        "errors": errors,
     }
