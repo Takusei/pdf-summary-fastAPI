@@ -4,12 +4,20 @@ from pathlib import Path
 from typing import Union
 
 from langchain_chroma import Chroma
-from langchain_openai import OpenAIEmbeddings
+from langchain_openai import AzureOpenAIEmbeddings, OpenAIEmbeddings
 
+from app.llm.models import AZURE_OPENAI_ENDPOINT, AZURE_TOKEN_PROVIDER
 from app.rag.config import COLLECTION, DB_DIR, OPENAI_EMBEDDINGS_MODEL
 
 
-def initialize_embeddings() -> OpenAIEmbeddings:
+def initialize_embeddings() -> OpenAIEmbeddings | AzureOpenAIEmbeddings:
+    if AZURE_OPENAI_ENDPOINT:
+        return AzureOpenAIEmbeddings(
+            model=OPENAI_EMBEDDINGS_MODEL,
+            azure_endpoint=AZURE_OPENAI_ENDPOINT,
+            azure_ad_token_provider=AZURE_TOKEN_PROVIDER,
+        )
+
     return OpenAIEmbeddings(model=OPENAI_EMBEDDINGS_MODEL)
 
 
