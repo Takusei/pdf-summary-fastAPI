@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from langchain_community.vectorstores.utils import filter_complex_metadata
+
 from app.rag.loaders import iter_supported_files, load_file
 from app.rag.splitter import get_splitter
 from app.rag.vector_store import get_vector_store
@@ -44,7 +46,8 @@ def _upsert_file(vector_store, splitter, path: Path, existing) -> None:
     for d in splits:
         d.metadata.update({"source": source, "mtime": mtime})
 
-    vector_store.add_documents(splits)
+    filtered_splits = filter_complex_metadata(splits)
+    vector_store.add_documents(filtered_splits)
 
 
 def _delete_removed_sources(vector_store, current_sources: set[str]) -> set[str]:

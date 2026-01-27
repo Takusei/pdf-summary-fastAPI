@@ -15,6 +15,7 @@ def initialize_embeddings() -> OpenAIEmbeddings | AzureOpenAIEmbeddings:
         return AzureOpenAIEmbeddings(
             model=OPENAI_EMBEDDINGS_MODEL,
             azure_endpoint=AZURE_OPENAI_ENDPOINT,
+            # api_version=AZURE_OPENAI_API_VERSION,
             azure_ad_token_provider=AZURE_TOKEN_PROVIDER,
         )
 
