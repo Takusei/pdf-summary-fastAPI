@@ -6,9 +6,8 @@ from langchain.agents import create_agent
 from langchain.tools import tool
 from langchain_core.documents import Document
 from langchain_core.messages import BaseMessage
-from langchain_openai import ChatOpenAI
 
-from app.rag.config import OPENAI_CHAT_MODEL
+from app.llm.models import initialize_model
 from app.rag.vector_store import get_vector_store
 
 
@@ -42,7 +41,8 @@ def build_rag_agent(folder: str, k: int = 4):
         "If the answer is not in the retrieved context, say you don't know."
     )
 
-    llm = ChatOpenAI(model=OPENAI_CHAT_MODEL, temperature=0)
+    llm = initialize_model()
+
     agent = create_agent(llm, tools, system_prompt=system_prompt)
     return agent
 
