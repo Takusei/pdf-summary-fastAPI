@@ -7,7 +7,7 @@ from langchain_chroma import Chroma
 from langchain_openai import AzureOpenAIEmbeddings, OpenAIEmbeddings
 
 from app.llm.models import AZURE_OPENAI_ENDPOINT, AZURE_TOKEN_PROVIDER
-from app.rag.config import COLLECTION, DB_DIR, OPENAI_EMBEDDINGS_MODEL
+from app.rag.config import COLLECTION, DB_DIR, OPENAI_EMBEDDINGS_MODEL, VDR_DB_DIR
 
 
 def initialize_embeddings() -> OpenAIEmbeddings | AzureOpenAIEmbeddings:
@@ -27,7 +27,11 @@ def get_vector_store(folder: Union[str, Path, None] = None) -> Chroma:
     if folder is None:
         persist_directory = DB_DIR
     else:
-        persist_directory = str(Path(folder) / DB_DIR)
+        db_path = Path(DB_DIR)
+        if db_path.is_absolute():
+            persist_directory = str(db_path)
+        else:
+            persist_directory = str(Path(folder) / VDR_DB_DIR / DB_DIR)
     return Chroma(
         collection_name=COLLECTION,
         embedding_function=embeddings,

@@ -7,6 +7,7 @@ from langchain_openai import AzureChatOpenAI, ChatOpenAI
 
 from app.cache.utils import (
     SAVED_SUMMARY_DB,
+    VDR_DB_DIR,
     get_json_from_cache,
     is_cache_file,
     save_json_to_cache,
@@ -29,7 +30,9 @@ async def summarize_folder(
     - If regenerate=False and sync=False: Returns cached data if it exists, otherwise generates all.
     """
     path_obj = Path(folder_path)
-    db_path = path_obj / SAVED_SUMMARY_DB
+    db_dir = path_obj / VDR_DB_DIR
+    db_dir.mkdir(parents=True, exist_ok=True)
+    db_path = db_dir / SAVED_SUMMARY_DB
     start_time = time.perf_counter()
 
     # --- Force regenerate: ignore cache ---
@@ -56,7 +59,9 @@ async def summarize_folder(
 
     # 1. Get the current state of files on disk
     current_files_meta = {}
-    for root, _, files in os.walk(folder_path):
+    for root, dirs, files in os.walk(folder_path):
+        if VDR_DB_DIR in dirs:
+            dirs.remove(VDR_DB_DIR)
         for file in files:
             if is_cache_file(file):
                 continue

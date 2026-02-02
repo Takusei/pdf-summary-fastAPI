@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import os
 
-DB_DIR = os.getenv("RAG_DB_DIR", "./chroma_db")
+VDR_DB_DIR = os.getenv("VDR_DB_DIR", "VDR_DB")
+DB_DIR = os.getenv("RAG_DB_DIR", "chroma_db")
 COLLECTION = os.getenv("RAG_COLLECTION", "my_rag_docs")
 CHUNK_SIZE = int(os.getenv("RAG_CHUNK_SIZE", "200"))
 CHUNK_OVERLAP = int(os.getenv("RAG_CHUNK_OVERLAP", "50"))

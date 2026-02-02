@@ -3,6 +3,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Optional
 
+VDR_DB_DIR = "VDR_DB"
 SAVED_SUMMARY_DB = ".summarycache.db"
 SAVED_TREE_DB = ".treecache.db"
 
