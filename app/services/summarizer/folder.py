@@ -11,6 +11,7 @@ from app.cache.utils import (
     is_cache_file,
     save_json_to_cache,
 )
+from app.core.logging import log_event
 from app.schemas.summarize import MultipleSummariesResponse
 from app.services.summarizer.file import summarize_single_file_async
 
@@ -29,17 +30,18 @@ async def summarize_folder(
     """
     path_obj = Path(folder_path)
     db_path = path_obj / SAVED_SUMMARY_DB
-    start_time = time.time()
+    start_time = time.perf_counter()
 
     # --- Force regenerate: ignore cache ---
     if regenerate:
-        print("Regenerate is True. Clearing cache and starting fresh.")
+        log_event("summary_regenerate", folder_path=folder_path)
         # The logic will proceed to summarize all files as if no cache exists.
         pass
     # --- Fast Cache check (if not regenerating or syncing) ---
     elif not sync:
         cached_data = get_json_from_cache(db_path, "summaries")
         if cached_data:
+            log_event("summary_cache_hit", folder_path=folder_path)
             return MultipleSummariesResponse(**cached_data)
         # If no cache, fall through to the full generation logic below
 
@@ -95,7 +97,11 @@ async def summarize_folder(
 
     # 3. Summarize only the necessary files
     if files_to_summarize_meta:
-        print("Summarizing files:", [f["file_path"] for f in files_to_summarize_meta])
+        log_event(
+            "summary_batch_start",
+            folder_path=folder_path,
+            file_count=len(files_to_summarize_meta),
+        )
         semaphore = asyncio.Semaphore(10)
         tasks = [
             summarize_single_file_async(
@@ -114,10 +120,18 @@ async def summarize_folder(
             }
             final_summaries.append(summary_data)
     else:
-        print("All summaries loaded from cache; no files needed summarization.")
+        log_event("summary_noop", folder_path=folder_path)
 
     # 4. Create final response and save to cache
-    total_duration = time.time() - start_time
+    total_duration = time.perf_counter() - start_time
+    log_event(
+        "summary_batch",
+        duration_s=total_duration,
+        folder_path=folder_path,
+        file_count=len(final_summaries),
+        regenerate=regenerate,
+        sync=sync,
+    )
     response = MultipleSummariesResponse(
         summaries=final_summaries, duration=total_duration
     )

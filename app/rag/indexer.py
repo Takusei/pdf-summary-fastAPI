@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import time
 from pathlib import Path
 
 from langchain_community.vectorstores.utils import filter_complex_metadata
 
+from app.core.logging import log_event
 from app.rag.loaders import iter_supported_files, load_file
 from app.rag.splitter import get_splitter
 from app.rag.vector_store import get_vector_store
@@ -25,13 +27,15 @@ def _should_update(existing, mtime: float, regenerate: bool) -> bool:
     if regenerate or not existing["ids"]:
         return True
     old_mtime = existing["metadatas"][0].get("mtime")
-    print(f"  Existing mtime: {old_mtime}, Current mtime: {mtime}")
+    log_event("index_mtime_check", old_mtime=old_mtime, current_mtime=mtime)
     return old_mtime != mtime
 
 
 def _upsert_file(vector_store, splitter, path: Path, existing) -> bool:
     source = str(path.resolve())
     mtime = path.stat().st_mtime
+
+    file_start = time.perf_counter()
 
     if existing["ids"]:
         vector_store.delete(ids=existing["ids"])
@@ -42,12 +46,25 @@ def _upsert_file(vector_store, splitter, path: Path, existing) -> bool:
     if not docs or all(not d.page_content.strip() for d in docs):
         return False
 
+    split_start = time.perf_counter()
     splits = splitter.split_documents(docs)
+    split_duration = time.perf_counter() - split_start
     for d in splits:
         d.metadata.update({"source": source, "mtime": mtime})
 
     filtered_splits = filter_complex_metadata(splits)
+    embed_start = time.perf_counter()
     vector_store.add_documents(filtered_splits)
+    embed_duration = time.perf_counter() - embed_start
+
+    log_event(
+        "index_file",
+        duration_s=time.perf_counter() - file_start,
+        source=source,
+        chunk_count=len(filtered_splits),
+        chunking_s=split_duration,
+        embedding_s=embed_duration,
+    )
     return True
 
 
@@ -80,6 +97,7 @@ def index_folder(folder: Path, regenerate: bool = False) -> dict[str, int]:
     Returns:
         dict[str, int]: A dictionary with counts of added, updated, skipped, and errors.
     """
+    start_time = time.perf_counter()
     vector_store = get_vector_store(folder)
     splitter = get_splitter()
 
@@ -93,18 +111,18 @@ def index_folder(folder: Path, regenerate: bool = False) -> dict[str, int]:
     for path in paths:
         source = str(path.resolve())
         mtime = path.stat().st_mtime
-        print(f"Indexing: {source}")
+        log_event("index_start", source=source)
         existing = _get_existing_for_source(vector_store, source)
         if not _should_update(existing, mtime, regenerate):
-            print("  Skipping file (no changes)...", source)
+            log_event("index_skip", source=source)
             skipped += 1
             continue
-        print("  Updating index for file...", source)
+        log_event("index_update", source=source)
         try:
             indexed = _upsert_file(vector_store, splitter, path, existing)
         except Exception as exc:
             errors += 1
-            print(f"  Error indexing file: {source} -> {exc}")
+            log_event("index_error", source=source, error=str(exc))
             continue
 
         if not indexed:
@@ -118,12 +136,15 @@ def index_folder(folder: Path, regenerate: bool = False) -> dict[str, int]:
 
     deleted_sources = _delete_removed_sources(vector_store, current_sources)
 
-    print("✅ Index finished")
-    print(f"  Added:   {added}")
-    print(f"  Updated: {updated}")
-    print(f"  Deleted: {len(deleted_sources)}")
-    print(f"  Skipped: {skipped}")
-    print(f"  Errors:  {errors}")
+    log_event(
+        "index_folder",
+        duration_s=time.perf_counter() - start_time,
+        added=added,
+        updated=updated,
+        deleted=len(deleted_sources),
+        skipped=skipped,
+        errors=errors,
+    )
 
     # ToDO: When generate the DB, and remove the DB folder manually, the next time,
     # it will not create the persistent collection again.

@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     BACKEND_HOST: str = "127.0.0.1"
     BACKEND_PORT: int = 8000
+    LOG_FILE_PATH: str = "logs/event_times.log"
     # Add other settings here
 
     class Config:

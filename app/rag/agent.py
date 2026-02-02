@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from typing import Iterable, List
 
 from langchain.agents import create_agent
@@ -7,6 +8,7 @@ from langchain.tools import tool
 from langchain_core.documents import Document
 from langchain_core.messages import BaseMessage
 
+from app.core.logging import log_event
 from app.llm.models import initialize_model
 from app.rag.vector_store import get_vector_store
 
@@ -28,7 +30,16 @@ def build_rag_agent(folder: str, k: int = 4):
     @tool(response_format="content_and_artifact")
     def retrieve_context(query: str):
         """Retrieve information to help answer a query."""
+        start = time.perf_counter()
         retrieved_docs = vector_store.similarity_search(query, k=k)
+        log_event(
+            "retrieval",
+            duration_s=time.perf_counter() - start,
+            folder=folder,
+            k=k,
+            query_length=len(query),
+            doc_count=len(retrieved_docs),
+        )
         serialized = "\n\n".join(
             (f"Source: {doc.metadata}\nContent: {doc.page_content}")
             for doc in retrieved_docs

@@ -16,3 +16,7 @@ backend.spec
 data
 
 chroma_db/
+
+sample
+
+logs
