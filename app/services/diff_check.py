@@ -2,6 +2,7 @@ from pathlib import Path
 
 from app.cache.utils import (
     SAVED_TREE_DB,
+    VDR_DB_DIR,
     get_json_from_cache,
     is_cache_file,
 )
@@ -12,7 +13,7 @@ def check_diff(folder_path: Path) -> bool:
     Compares the live directory against the cached tree to check for changes.
     Returns True if there are any new, deleted, or modified files.
     """
-    db_path = folder_path / SAVED_TREE_DB
+    db_path = folder_path / VDR_DB_DIR / SAVED_TREE_DB
     cached_tree = get_json_from_cache(db_path, "tree")
 
     # If there's no cache, there's no "difference" by default.
@@ -34,7 +35,7 @@ def check_diff(folder_path: Path) -> bool:
     current_files = {}
     try:
         for item in folder_path.rglob("*"):
-            if is_cache_file(item.name):
+            if is_cache_file(item.name) or VDR_DB_DIR in item.parts:
                 continue
             try:
                 current_files[str(item)] = item.stat().st_mtime
