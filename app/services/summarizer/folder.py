@@ -22,6 +22,7 @@ async def summarize_folder(
     regenerate: bool,
     sync: bool,
     llm: ChatOpenAI | AzureChatOpenAI,
+    base_dir: str | None = None,
 ) -> MultipleSummariesResponse:
     """
     Summarizes files in a folder with caching.
@@ -110,7 +111,11 @@ async def summarize_folder(
         semaphore = asyncio.Semaphore(10)
         tasks = [
             summarize_single_file_async(
-                file_meta["file_path"], semaphore, llm, method="stuff"
+                file_meta["file_path"],
+                semaphore,
+                llm,
+                method="stuff",
+                base_dir=base_dir,
             )
             for file_meta in files_to_summarize_meta
         ]

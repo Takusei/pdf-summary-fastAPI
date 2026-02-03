@@ -26,7 +26,10 @@ async def summarize_file_endpoint(request: FilePathRequest):
     file_path = Path(request.file_path)
     with log_base_dir(file_path.parent):
         summary, duration = summarize_single_file(
-            str(file_path), llm=llm_model, method="stuff"
+            str(file_path),
+            llm=llm_model,
+            method="stuff",
+            base_dir=str(file_path.parent),
         )
     stat = file_path.stat()
     file_type = "directory" if file_path.is_dir() else file_path.suffix
@@ -55,4 +58,5 @@ async def summarize_folder_endpoint(request: FolderPathRequest):
             regenerate=request.regenerate,
             sync=request.sync,
             llm=llm_model,
+            base_dir=request.folder_path,
         )
