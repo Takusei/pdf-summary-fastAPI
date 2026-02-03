@@ -7,6 +7,7 @@ from typing import Iterable, List
 from langchain_community.document_loaders import PyMuPDFLoader, TextLoader
 from langchain_core.documents import Document
 
+from app.cache.utils import VDR_DB_DIR
 from app.services.file_loader import load_file as load_office_file
 
 
@@ -42,6 +43,8 @@ def iter_supported_files(folder: Path) -> Iterable[Path]:
     supported = {".pdf", ".pptx", ".docx", ".xls", ".xlsx"}
     for path in folder.rglob("*"):
         if not path.is_file():
+            continue
+        if VDR_DB_DIR in path.parts:
             continue
         if path.suffix.lower() not in supported:
             continue

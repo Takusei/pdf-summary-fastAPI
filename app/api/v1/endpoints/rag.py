@@ -5,6 +5,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 
+from app.core.logging import log_base_dir
 from app.rag.agent import answer_question
 from app.rag.indexer import index_folder
 from app.schemas.rag import (
@@ -29,7 +30,8 @@ async def index_folder_endpoint(request: IndexFolderRequest):
         )
 
     start = time.perf_counter()
-    result = index_folder(folder_path, regenerate=request.regenerate)
+    with log_base_dir(folder_path):
+        result = index_folder(folder_path, regenerate=request.regenerate)
     duration = time.perf_counter() - start
 
     return {
@@ -54,9 +56,10 @@ async def rag_query_endpoint(request: RagQueryRequest):
         )
 
     start = time.perf_counter()
-    answer, sources = answer_question(
-        request.question, folder=str(folder_path), k=request.top_k
-    )
+    with log_base_dir(folder_path):
+        answer, sources = answer_question(
+            request.question, folder=str(folder_path), k=request.top_k
+        )
     duration = time.perf_counter() - start
 
     return {

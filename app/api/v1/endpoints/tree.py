@@ -2,6 +2,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 
+from app.core.logging import log_base_dir
 from app.schemas.tree import TreeRequest
 from app.services.tree_generator import get_tree
 
@@ -17,5 +18,6 @@ def read_tree(request: TreeRequest):
     if not folder_path.is_dir():
         raise HTTPException(status_code=400, detail="Invalid folder path")
 
-    tree = get_tree(folder_path, regenerate=request.regenerate)
-    return tree
+    with log_base_dir(folder_path):
+        tree = get_tree(folder_path, regenerate=request.regenerate)
+        return tree
