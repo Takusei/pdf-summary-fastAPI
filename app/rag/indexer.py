@@ -19,8 +19,16 @@ def _collect_paths(folder: Path) -> tuple[list[Path], set[str]]:
     return paths, current_sources
 
 
+def collect_paths(folder: Path) -> tuple[list[Path], set[str]]:
+    return _collect_paths(folder)
+
+
 def _get_existing_for_source(vector_store, source: str):
     return vector_store.get(where={"source": source}, include=["metadatas"])
+
+
+def get_existing_for_source(vector_store, source: str):
+    return _get_existing_for_source(vector_store, source)
 
 
 def _should_update(existing, mtime: float, regenerate: bool) -> bool:
@@ -31,7 +39,11 @@ def _should_update(existing, mtime: float, regenerate: bool) -> bool:
     return old_mtime != mtime
 
 
-def _upsert_file(vector_store, splitter, path: Path, existing) -> bool:
+def should_update(existing, mtime: float, regenerate: bool) -> bool:
+    return _should_update(existing, mtime, regenerate)
+
+
+def upsert_docs(vector_store, splitter, path: Path, docs, existing) -> bool:
     source = str(path.resolve())
     mtime = path.stat().st_mtime
 
@@ -39,8 +51,6 @@ def _upsert_file(vector_store, splitter, path: Path, existing) -> bool:
 
     if existing["ids"]:
         vector_store.delete(ids=existing["ids"])
-
-    docs = load_file(path)
 
     # Skip files that yield no content
     if not docs or all(not d.page_content.strip() for d in docs):
@@ -68,6 +78,11 @@ def _upsert_file(vector_store, splitter, path: Path, existing) -> bool:
     return True
 
 
+def _upsert_file(vector_store, splitter, path: Path, existing) -> bool:
+    docs = load_file(path)
+    return upsert_docs(vector_store, splitter, path, docs, existing)
+
+
 def _delete_removed_sources(vector_store, current_sources: set[str]) -> set[str]:
     # After indexing, remove any stored chunks whose source file no longer exists.
     existing_all = vector_store.get(include=["metadatas"])
@@ -87,6 +102,10 @@ def _delete_removed_sources(vector_store, current_sources: set[str]) -> set[str]
         vector_store.delete(ids=ids_to_delete)
 
     return deleted_sources
+
+
+def delete_removed_sources(vector_store, current_sources: set[str]) -> set[str]:
+    return _delete_removed_sources(vector_store, current_sources)
 
 
 def index_folder(folder: Path, regenerate: bool = False) -> dict[str, int]:

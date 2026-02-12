@@ -12,6 +12,21 @@ from app.services.summarizer.utils import (
 )
 
 
+def summarize_docs(
+    docs,
+    file_path: str,
+    llm: ChatOpenAI | AzureChatOpenAI,
+    method: str = "auto",
+) -> str:
+    use_method = choose_method(docs, method)
+    log_event("summary_method", file_path=file_path, method=use_method)
+
+    if use_method == "map-reduce":
+        return summarize_with_map_reduce(docs, llm)
+
+    return summarize_with_stuff(docs, llm)
+
+
 def summarize_single_file(
     file_path: str,
     llm: ChatOpenAI | AzureChatOpenAI,
@@ -33,14 +48,7 @@ def _summarize_single_file(
 ) -> tuple[str, float]:
     try:
         docs = load_file(file_path)
-
-        use_method = choose_method(docs, method)
-        log_event("summary_method", file_path=file_path, method=use_method)
-
-        if use_method == "map-reduce":
-            summary = summarize_with_map_reduce(docs, llm)
-        else:
-            summary = summarize_with_stuff(docs, llm)
+        summary = summarize_docs(docs, file_path, llm, method)
     except Exception as e:
         summary = f"Error during summarization: {str(e)}"
         log_event("summary_error", file_path=file_path, error=str(e))
